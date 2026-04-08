@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PAN Tool Pro</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { font-family: Arial; text-align: center; background: #f2f2f2; }
+    .box { background: white; padding: 20px; margin: 20px auto; width: 320px; border-radius: 10px; }
+    canvas { border:1px solid #ccc; margin-top:10px; }
+    button { padding:10px; margin-top:10px; background:green; color:white; border:none; }
+  </style>
+</head>
+
+<body>
+
+<h2>Photo Tool (PAN + PDF)</h2>
+
+<div class="box">
+  <h3>Upload Photo</h3>
+  <input type="file" id="upload"><br>
+
+  <label>Brightness</label><br>
+  <input type="range" id="brightness" min="0.5" max="2" step="0.1" value="1">
+
+  <canvas id="canvas" width="300" height="300"></canvas><br>
+
+  <button onclick="downloadImg()">Download JPG</button><br>
+  <button onclick="convertPDF()">Convert to PDF (200 DPI)</button>
+</div>
+
+<script>
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let img = new Image();
+
+document.getElementById('upload').addEventListener('change', function(e) {
+  img.src = URL.createObjectURL(e.target.files[0]);
+});
+
+img.onload = function() {
+  drawImage();
+}
+
+document.getElementById('brightness').addEventListener('input', drawImage);
+
+function drawImage() {
+  let b = document.getElementById('brightness').value;
+  ctx.clearRect(0,0,300,300);
+  ctx.filter = brightness(${b});
+  ctx.drawImage(img, 0, 0, 300, 300);
+}
+
+function downloadImg() {
+  let link = document.createElement('a');
+  link.download = "photo.jpg";
+  link.href = canvas.toDataURL("image/jpeg", 0.8);
+  link.click();
+}
+
+async function convertPDF() {
+  const { jsPDF } = window.jspdf;
+
+  let pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  let imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+  // A4 size fit (approx 200 DPI)
+  pdf.addImage(imgData, 'JPEG', 10, 10, 190, 190);
+
+  pdf.save("photo.pdf");
+}
+</script>
+
+</body>
+</html>
