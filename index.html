@@ -2,76 +2,84 @@
 <html>
 <head>
   <title>PAN Tool Pro</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Cropper CSS -->
+  <link href="https://unpkg.com/cropperjs/dist/cropper.min.css" rel="stylesheet"/>
+
   <style>
-    body { font-family: Arial; text-align: center; background: #f2f2f2; }
-    .box { background: white; padding: 20px; margin: 20px auto; width: 320px; border-radius: 10px; }
-    canvas { border:1px solid #ccc; margin-top:10px; }
-    button { padding:10px; margin-top:10px; background:green; color:white; border:none; }
+    body { font-family: Arial; text-align:center; background:#f2f2f2; }
+    .box { background:white; padding:20px; margin:20px; border-radius:10px; }
+    img { max-width:100%; }
+    button { padding:10px; margin:10px; background:green; color:white; border:none; }
   </style>
 </head>
 
 <body>
 
-<h2>Photo Tool (PAN + PDF)</h2>
+<h2>PAN Photo Tool (Pro)</h2>
 
 <div class="box">
-  <h3>Upload Photo</h3>
-  <input type="file" id="upload"><br>
+  <input type="file" id="inputImage"><br><br>
+  <img id="image">
+  <br>
 
   <label>Brightness</label><br>
-  <input type="range" id="brightness" min="0.5" max="2" step="0.1" value="1">
+  <input type="range" id="bright" min="0.5" max="2" step="0.1" value="1">
 
-  <canvas id="canvas" width="300" height="300"></canvas><br>
-
-  <button onclick="downloadImg()">Download JPG</button><br>
-  <button onclick="convertPDF()">Convert to PDF (200 DPI)</button>
+  <br><br>
+  <button onclick="cropImage()">Download JPG</button>
+  <button onclick="makePDF()">Download PDF</button>
 </div>
 
+<!-- JS Libraries -->
+<script src="https://unpkg.com/cropperjs"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <script>
-let canvas = document.getElementById('canvas');
-let ctx = canvas.getContext('2d');
-let img = new Image();
+let image = document.getElementById('image');
+let cropper;
 
-document.getElementById('upload').addEventListener('change', function(e) {
-  img.src = URL.createObjectURL(e.target.files[0]);
-});
+document.getElementById('inputImage').onchange = function(e){
+  let file = e.target.files[0];
+  let url = URL.createObjectURL(file);
+  image.src = url;
 
-img.onload = function() {
-  drawImage();
-}
+  if(cropper) cropper.destroy();
 
-document.getElementById('brightness').addEventListener('input', drawImage);
+  cropper = new Cropper(image, {
+    aspectRatio: 1,
+    viewMode: 1
+  });
+};
 
-function drawImage() {
-  let b = document.getElementById('brightness').value;
-  ctx.clearRect(0,0,300,300);
-  ctx.filter = brightness(${b});
-  ctx.drawImage(img, 0, 0, 300, 300);
-}
+function cropImage(){
+  let canvas = cropper.getCroppedCanvas({
+    width: 300,
+    height: 300
+  });
 
-function downloadImg() {
+  let ctx = canvas.getContext("2d");
+  ctx.filter = "brightness(" + document.getElementById('bright').value + ")";
+  ctx.drawImage(canvas,0,0);
+
   let link = document.createElement('a');
   link.download = "photo.jpg";
-  link.href = canvas.toDataURL("image/jpeg", 0.8);
+  link.href = canvas.toDataURL("image/jpeg",0.8);
   link.click();
 }
 
-async function convertPDF() {
+async function makePDF(){
   const { jsPDF } = window.jspdf;
-
-  let pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4"
+  let canvas = cropper.getCroppedCanvas({
+    width: 300,
+    height: 300
   });
 
-  let imgData = canvas.toDataURL("image/jpeg", 1.0);
+  let imgData = canvas.toDataURL("image/jpeg",1.0);
 
-  // A4 size fit (approx 200 DPI)
-  pdf.addImage(imgData, 'JPEG', 10, 10, 190, 190);
-
-  pdf.save("photo.pdf");
+  let pdf = new jsPDF();
+  pdf.addImage(imgData,'JPEG',10,10,180,180);
+  pdf.save("file.pdf");
 }
 </script>
 
